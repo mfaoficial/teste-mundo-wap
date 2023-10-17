@@ -71,7 +71,7 @@ class StoresController extends AppController
         return null;
     }
 
-    public function edit(int $id): Response
+    public function edit(int $id): ?Response
     {
         $this->request->allowMethod(['put']);
 
@@ -82,10 +82,10 @@ class StoresController extends AppController
             return $this->response->withStatus(404, 'Store not found');
         }
 
-        return $this->response;
+        return null;
     }
 
-    public function delete(int $id): Response
+    public function delete(int $id): ?Response
     {
         $this->request->allowMethod(['delete']);
 
@@ -103,8 +103,6 @@ class StoresController extends AppController
         } catch (RecordNotFoundException $e) {
             return $this->response->withStatus(404, 'Store not found');
         }
-
-        return $this->response;
     }
 
     /**
