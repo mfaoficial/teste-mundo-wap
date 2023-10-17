@@ -56,7 +56,11 @@ class StoresController extends AppController
             $this->set('store', $store);
             $this->viewBuilder()->setOption('serialize', ['store']);
         } catch (RecordNotFoundException $e) {
-            return $this->response->withStatus(404, 'Store not found');
+            $message = 'Store not found';
+
+            return $this->response
+                ->withStatus(404)
+                ->withStringBody(json_encode(['message' => $message]));
         }
 
         return null;
@@ -79,7 +83,11 @@ class StoresController extends AppController
             $store = $this->Stores->get($id);
             $this->save($store);
         } catch (RecordNotFoundException $e) {
-            return $this->response->withStatus(404, 'Store not found');
+            $message = 'Store not found';
+
+            return $this->response
+                ->withStatus(404)
+                ->withStringBody(json_encode(['message' => $message]));
         }
 
         return null;
@@ -101,8 +109,14 @@ class StoresController extends AppController
             $this->set('message', $message);
             $this->viewBuilder()->setOption('serialize', ['message']);
         } catch (RecordNotFoundException $e) {
-            return $this->response->withStatus(404, 'Store not found');
+            $message = 'Store not found';
+
+            return $this->response
+                ->withStatus(404)
+                ->withStringBody(json_encode(['message' => $message]));
         }
+
+        return null;
     }
 
     /**
