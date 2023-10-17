@@ -3,13 +3,13 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Model\Entity\Store;
 use App\Model\Table\StoresTable;
 use Cake\Event\EventInterface;
 use Cake\ORM\TableRegistry;
 use Cake\Http\Response;
 use Cake\View\JsonView;
 use Cake\Datasource\Exception\RecordNotFoundException;
+use Cake\Validation\Validator;
 
 class StoresController extends AppController
 {
@@ -40,43 +40,56 @@ class StoresController extends AppController
         $this->viewBuilder()->setClassName('Json');
     }
 
-    public function index(): ?Response
+    public function index(): Response
     {
-        $stores = $this->Stores->find()->all();
-        $this->set('stores', $stores);
-        $this->viewBuilder()->setOption('serialize', ['stores']);
+        $this->request->allowMethod(['get']);
 
-        return null;
+        $stores = json_encode($this->Stores->find()->all()) ?: 'Ocorreu um erro inesperado, tente novamente mais tarde.';
+
+        return $this->response
+            ->withStatus($stores == 'Ocorreu um erro inesperado, tente novamente mais tarde.' ? 404 : 200)
+            ->withStringBody($stores);
     }
 
-    public function view(int $id): ?Response
+    public function view(int $id): Response
     {
-        try {
-            $store = $this->Stores->get($id);
-            $this->set('store', $store);
-            $this->viewBuilder()->setOption('serialize', ['store']);
-        } catch (RecordNotFoundException $e) {
-            $message = json_encode(['message' => 'Store not found']);
+        $this->request->allowMethod(['get']);
 
-            if ($message === false) {
-                $message = 'An error occurred while encoding the error message.';
-            }
+        try {
+            $store = json_encode($this->Stores->get($id)) ?: 'Ocorreu um erro inesperado, tente novamente mais tarde.';
+        } catch (RecordNotFoundException $e) {
+            $message = 'Registro não encontrado';
 
             return $this->response
                 ->withStatus(404)
                 ->withStringBody($message);
         }
 
-        return null;
+        return $this->response
+            ->withStatus(200)
+            ->withStringBody($store);
     }
 
-    public function add(): ?Response
+    public function add(): Response
     {
         $this->request->allowMethod(['post']);
-        $store = $this->Stores->newEmptyEntity();
-        $this->save($store);
 
-        return null;
+        $store = $this->Stores->newEmptyEntity();
+        $store = $this->Stores->patchEntity($store, $this->request->getData());
+
+        if (!($this->Stores->save($store))) {
+            $message = json_encode($store->getErrors()) ?: 'Ocorreu um erro inesperado, tente novamente mais tarde.';
+
+            return $this->response
+                ->withStatus($message == 'Ocorreu um erro inesperado, tente novamente mais tarde.' ? 404 : 400)
+                ->withStringBody($message);
+        }
+
+        $message = 'Registro criado com sucesso';
+
+        return $this->response
+            ->withStatus(201)
+            ->withStringBody($message);
     }
 
     public function edit(int $id): ?Response
@@ -129,26 +142,5 @@ class StoresController extends AppController
         }
 
         return null;
-    }
-
-    /**
-     * @param  Store  $store
-     * @return void
-     */
-    public function save(Store $store): void
-    {
-        $store = $this->Stores->patchEntity($store, $this->request->getData());
-
-        if ($this->Stores->save($store)) {
-            $message = 'Saved';
-        } else {
-            $message = 'Error';
-        }
-
-        $this->set([
-            'message' => $message,
-            'store' => $store,
-        ]);
-        $this->viewBuilder()->setOption('serialize', ['store', 'message']);
     }
 }
