@@ -56,11 +56,15 @@ class StoresController extends AppController
             $this->set('store', $store);
             $this->viewBuilder()->setOption('serialize', ['store']);
         } catch (RecordNotFoundException $e) {
-            $message = 'Store not found';
+            $message = json_encode(['message' => 'Store not found']);
+
+            if ($message === false) {
+                $message = 'An error occurred while encoding the error message.';
+            }
 
             return $this->response
                 ->withStatus(404)
-                ->withStringBody(json_encode(['message' => $message]));
+                ->withStringBody($message);
         }
 
         return null;
@@ -83,11 +87,15 @@ class StoresController extends AppController
             $store = $this->Stores->get($id);
             $this->save($store);
         } catch (RecordNotFoundException $e) {
-            $message = 'Store not found';
+            $message = json_encode(['message' => 'Store not found']);
+
+            if ($message === false) {
+                $message = 'An error occurred while encoding the error message.';
+            }
 
             return $this->response
                 ->withStatus(404)
-                ->withStringBody(json_encode(['message' => $message]));
+                ->withStringBody($message);
         }
 
         return null;
@@ -109,11 +117,15 @@ class StoresController extends AppController
             $this->set('message', $message);
             $this->viewBuilder()->setOption('serialize', ['message']);
         } catch (RecordNotFoundException $e) {
-            $message = 'Store not found';
+            $message = json_encode(['message' => 'Store not found']);
+
+            if ($message === false) {
+                $message = 'An error occurred while encoding the error message.';
+            }
 
             return $this->response
                 ->withStatus(404)
-                ->withStringBody(json_encode(['message' => $message]));
+                ->withStringBody($message);
         }
 
         return null;
