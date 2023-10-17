@@ -50,56 +50,16 @@ class AddressesTable extends Table
      */
     public function validationDefault(Validator $validator): Validator
     {
+        //No cadastro, os campos “postal_code” e “street_number” deverão ser obrigatórios e não podem conter valores vazios;
         $validator
-            ->scalar('foreign_table')
-            ->maxLength('foreign_table', 100)
-            ->requirePresence('foreign_table', 'create')
-            ->notEmptyString('foreign_table');
+            ->maxLength('postal_code', 8, 'O campo postal_code só pode conter até 8 caractéres')
+            ->requirePresence('postal_code', true, 'O campo postal_code é obrigatório')
+            ->notEmptyString('postal_code', 'O campo postal_code é obrigatório');
 
         $validator
-            ->requirePresence('foreign_id', 'create')
-            ->notEmptyString('foreign_id');
-
-        $validator
-            ->scalar('postal_code')
-            ->maxLength('postal_code', 8)
-            ->requirePresence('postal_code', 'create')
-            ->notEmptyString('postal_code');
-
-        $validator
-            ->scalar('state')
-            ->maxLength('state', 2)
-            ->requirePresence('state', 'create')
-            ->notEmptyString('state');
-
-        $validator
-            ->scalar('city')
-            ->maxLength('city', 200)
-            ->requirePresence('city', 'create')
-            ->notEmptyString('city');
-
-        $validator
-            ->scalar('sublocality')
-            ->maxLength('sublocality', 200)
-            ->requirePresence('sublocality', 'create')
-            ->notEmptyString('sublocality');
-
-        $validator
-            ->scalar('street')
-            ->maxLength('street', 200)
-            ->requirePresence('street', 'create')
-            ->notEmptyString('street');
-
-        $validator
-            ->scalar('street_number')
-            ->maxLength('street_number', 200)
-            ->requirePresence('street_number', 'create')
-            ->notEmptyString('street_number');
-
-        $validator
-            ->scalar('complement')
-            ->maxLength('complement', 200)
-            ->notEmptyString('complement');
+            ->maxLength('street_number', 200, 'O campo street_number só pode conter até 200 caractéres')
+            ->requirePresence('street_number', true, 'O campo street_number é obrigatório')
+            ->notEmptyString('street_number', 'O campo street_number é obrigatório');
 
         return $validator;
     }

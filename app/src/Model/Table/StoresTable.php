@@ -50,10 +50,9 @@ class StoresTable extends Table
     public function validationDefault(Validator $validator): Validator
     {
         $validator
-            ->scalar('name')
-            ->maxLength('name', 200, 'O campo nome só pode conter até 200 caractéres')
-            ->requirePresence('name', true, 'O campo nome é obrigatório')
-            ->notEmptyString('name', 'O campo nome é obrigatório')
+            ->maxLength('name', 200, 'O campo name só pode conter até 200 caractéres')
+            ->requirePresence('name', true, 'O campo name é obrigatório')
+            ->notEmptyString('name', 'O campo name é obrigatório')
             ->add('name', 'unique', [
             	'rule' => 'validateUnique',
             	'provider' => 'table',
