@@ -88,4 +88,12 @@ return static function (RouteBuilder $routes) {
      * });
      * ```
      */
+
+    // Defines the default url for the api.
+    $routes->scope('/api', function (RouteBuilder $builder) {
+        // Defines the extensions that will be parsed from the URL.
+        $builder->setExtensions(['json']);
+        // Defines CRUD for the API
+        $builder->resources('Stores');
+    });
 };
