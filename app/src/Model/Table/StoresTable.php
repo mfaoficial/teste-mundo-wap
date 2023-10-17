@@ -3,10 +3,9 @@ declare(strict_types=1);
 
 namespace App\Model\Table;
 
-use Cake\ORM\Query;
-use Cake\ORM\RulesChecker;
 use Cake\ORM\Table;
 use Cake\Validation\Validator;
+use function Sodium\add;
 
 /**
  * Stores Model
@@ -30,7 +29,7 @@ class StoresTable extends Table
     /**
      * Initialize method
      *
-     * @param array $config The configuration for the Table.
+     * @param  array  $config  The configuration for the Table.
      * @return void
      */
     public function initialize(array $config): void
@@ -45,16 +44,21 @@ class StoresTable extends Table
     /**
      * Default validation rules.
      *
-     * @param \Cake\Validation\Validator $validator Validator instance.
-     * @return \Cake\Validation\Validator
+     * @param  Validator  $validator  Validator instance.
+     * @return Validator
      */
     public function validationDefault(Validator $validator): Validator
     {
         $validator
             ->scalar('name')
-            ->maxLength('name', 200)
-            ->requirePresence('name', 'create')
-            ->notEmptyString('name');
+            ->maxLength('name', 200, 'O campo nome só pode conter até 200 caractéres')
+            ->requirePresence('name', true, 'O campo nome é obrigatório')
+            ->notEmptyString('name', 'O campo nome é obrigatório')
+            ->add('name', 'unique', [
+            	'rule' => 'validateUnique',
+            	'provider' => 'table',
+            	'message' => 'Nome em uso'
+            ]);
 
         return $validator;
     }
