@@ -267,7 +267,7 @@ class StoresTable extends Table
 
         if (!empty($completeAddress['message']) or empty($completeAddress)) {
             return $this->fillCepAbertoData($urlViaCep, $options, $entity, $completeAddress, $addressesTable, $address,
-                $connection, !empty($options['update']) ? 'update' : null);
+                $connection);
         } else {
             !empty($options['update']) ? $update = true : $update = false;
             $options = $this->fillViaCepData($options, $entity, $completeAddress);
