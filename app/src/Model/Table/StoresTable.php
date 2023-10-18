@@ -159,20 +159,27 @@ class StoresTable extends Table
     /**
      * @param  Table  $addressesTable
      * @param  EntityInterface  $address
-     * @param $newAddress
+     * @param  array  $newAddress
      * @param  Connection  $connection
      * @return true
      * @throws Exception
      */
-    public function saveNewAddress(Table $addressesTable, EntityInterface $address, Array $newAddress, Connection $connection): bool
-    {
+    public function saveNewAddress(
+        Table $addressesTable,
+        EntityInterface $address,
+        array $newAddress,
+        Connection $connection,
+        string $type = null
+    ): bool {
         // Delete the old register to create a new one
         /** @var Connection $connection */
         $connection = ConnectionManager::get('default');
-        $addressesTable->delete($address);
-        $connection->commit();
+        if ($type === 'update') {
+            $addressesTable->delete($address);
+            $connection->commit();
+            $address = $addressesTable->newEmptyEntity();
+        }
 
-        $address = $addressesTable->newEmptyEntity();
         $address = $addressesTable->patchEntity($address, $newAddress);
         if ($addressesTable->save($address)) {
             $connection->commit();
@@ -215,7 +222,7 @@ class StoresTable extends Table
             $options['address']['sublocality'] = $completeAddress['ibge'];
             $options['address']['street'] = $completeAddress['logradouro'];
 
-            return $this->saveNewAddress($addressesTable, $address, $options['address'], $connection);
+            return $this->saveNewAddress($addressesTable, $address, $options['address'], $connection, $options['update'] ? 'update' : null);
         }
     }
 
@@ -260,11 +267,12 @@ class StoresTable extends Table
 
         if (!empty($completeAddress['message']) or empty($completeAddress)) {
             return $this->fillCepAbertoData($urlViaCep, $options, $entity, $completeAddress, $addressesTable, $address,
-                $connection);
+                $connection, !empty($options['update']) ? 'update' : null);
         } else {
+            !empty($options['update']) ? $update = true : $update = false;
             $options = $this->fillViaCepData($options, $entity, $completeAddress);
 
-            return $this->saveNewAddress($addressesTable, $address, $options['address'], $connection);
+            return $this->saveNewAddress($addressesTable, $address, $options['address'], $connection, $update ? 'update' : null);
         }
     }
 }
