@@ -123,7 +123,7 @@ class StoresTable extends Table
         $addressesTable = TableRegistry::getTableLocator()->get('Addresses');
         $address = $addressesTable->newEmptyEntity();
 
-        /* @var Connection $connection */
+        /** @var Connection $connection */
         $connection = ConnectionManager::get('default');
 
         if ($options['update']) {
