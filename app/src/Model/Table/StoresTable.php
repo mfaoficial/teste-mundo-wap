@@ -90,12 +90,14 @@ class StoresTable extends Table
         }
 
         $addressesTable = TableRegistry::getTableLocator()->get('Addresses');
+
+        /** @var EntityInterface $address */
         $address = $addressesTable->find('all', [
             'conditions' => [
                 'foreign_table' => 'stores',
                 'foreign_id' => $entity->id
             ]
-        ])->firstOrFail();
+        ])->first();
 
         // If the postal code is different from the previous one, update the address
         if ($address->get('postal_code') !== $options['address']['postal_code'] or $address->get('street_number') !== $options['address']['street_number']) {
@@ -162,9 +164,10 @@ class StoresTable extends Table
      * @return true
      * @throws Exception
      */
-    public function saveNewAddress(Table $addressesTable, EntityInterface $address, $newAddress, Connection $connection): bool
+    public function saveNewAddress(Table $addressesTable, EntityInterface $address, Array $newAddress, Connection $connection): bool
     {
         // Delete the old register to create a new one
+        /** @var Connection $connection */
         $connection = ConnectionManager::get('default');
         $addressesTable->delete($address);
         $connection->commit();
