@@ -45,6 +45,13 @@ class StoresTable extends Table
         $this->setTable('stores');
         $this->setDisplayField('name');
         $this->setPrimaryKey('id');
+
+        $this->hasOne('Addresses', [
+            'foreignKey' => 'foreign_id',
+            'conditions' => [
+                'Addresses.foreign_table' => 'stores'
+            ]
+        ]);
     }
 
     /**
@@ -82,7 +89,11 @@ class StoresTable extends Table
                     'foreign_table' => 'stores',
                     'foreign_id' => $entity->id
                 ]
-            ])->first();
+            ])->firstOrFail();
+        }
+
+        if (!($address instanceof \Cake\Datasource\EntityInterface)) {
+            throw new Exception('Ocorreu um erro inesperado, tente novamente mais tarde.');
         }
 
         $urlCepAberto = 'https://www.cepaberto.com/api/v3/cep?cep='.$options['address']['postal_code'];
@@ -90,8 +101,10 @@ class StoresTable extends Table
 
         $completeAddress = (new AddressesTable())->curlPostalCode($urlCepAberto, 'cep aberto');
 
-        if (!empty($completeAddress['message'])) {
-            if (empty($completeAddress = (new AddressesTable())->curlPostalCode($urlViaCep, 'via cep'))) {
+        if (!empty($completeAddress['message']) or empty($completeAddress)) {
+            if ((new AddressesTable())->curlPostalCode($urlViaCep,
+                    'via cep')['erro'] === true or empty((new AddressesTable())->curlPostalCode($urlViaCep,
+                    'via cep'))) {
                 throw new Exception('CEP não encontrado');
             } else {
                 $options['address']['foreign_table'] = 'stores';
@@ -106,7 +119,7 @@ class StoresTable extends Table
                 if ($addressesTable->save($address)) {
                     return true;
                 } else {
-                    throw new Exception('Erro ao salvar.');
+                    throw new Exception('Ocorreu um erro inesperado, tente novamente mais tarde.');
                 }
             }
         }
@@ -123,6 +136,27 @@ class StoresTable extends Table
         if ($addressesTable->save($address)) {
             return true;
         }
-        throw new Exception('Algo deu errado!');
+        throw new Exception('Ocorreu um erro inesperado, tente novamente mais tarde.');
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function afterDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options): bool
+    {
+        $addressesTable = TableRegistry::getTableLocator()->get('Addresses');
+        $address = $addressesTable->find('all', [
+            'conditions' => [
+                'foreign_table' => 'stores',
+                'foreign_id' => $entity->id
+            ]
+        ])->first();
+
+        try {
+            $addressesTable->delete($address);
+            return true;
+        } catch (Exception $exception) {
+            throw new Exception('Ocorreu um erro inesperado, tente novamente mais tarde.');
+        }
     }
 }

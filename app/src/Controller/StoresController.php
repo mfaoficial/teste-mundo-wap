@@ -13,6 +13,7 @@ use Cake\Http\Response;
 use Cake\View\JsonView;
 use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Validation\Validator;
+use Exception;
 use PHPStan\Type\MixedType;
 
 class StoresController extends AppController
@@ -42,9 +43,6 @@ class StoresController extends AppController
         return [JsonView::class];
     }
 
-    /* Garante que sempre retorna JSON independente do que vem em Accept no Header, utilizei isto devido a retornar
-     * $this->response fazer retornar tudo branco no postman.
-    */
     public function beforeFilter(EventInterface $event): void
     {
         parent::beforeFilter($event);
@@ -67,7 +65,16 @@ class StoresController extends AppController
     {
         $this->request->allowMethod(['get']);
 
-        $store = json_encode($this->Stores->get($id)) ?: 'Registro não encontrado';
+        $store = $this->Stores->find('all', [
+            'conditions' => [
+                'Stores.id' => $id
+            ],
+            'contain' => [
+                'Addresses'
+            ]
+        ])->first();
+        $store->address->postal_code_masked = $this->maskPostalCode($store->address->postal_code);
+        $store = json_encode($store) ?: 'Registro não encontrado';
 
         return $this->response
             ->withStatus($store == 'Registro não encontrado' ? 404 : 200)
@@ -111,7 +118,7 @@ class StoresController extends AppController
                     ->withStatus($message == 'Ocorreu um erro inesperado, tente novamente mais tarde.' ? 404 : 400)
                     ->withStringBody($message);
             }
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             $message = 'Ocorreu um erro inesperado, tente novamente mais tarde.';
 
             $connection->rollback();
@@ -171,12 +178,10 @@ class StoresController extends AppController
                 ->withStatus(200)
                 ->withStringBody($message);
 
-        } catch (RecordNotFoundException $e) {
-            $message = 'Registro não encontrado';
-
+        } catch (Exception $e) {
             return $this->response
                 ->withStatus(404)
-                ->withStringBody($message);
+                ->withStringBody($e->getMessage());
         }
     }
 
@@ -187,27 +192,18 @@ class StoresController extends AppController
         try {
             $store = $this->Stores->get($id);
 
-            if ($this->Stores->delete($store)) {
-                $message = 'Deleted';
-            } else {
-                $message = 'Error';
-            }
-
-            $this->set('message', $message);
-            $this->viewBuilder()->setOption('serialize', ['message']);
-        } catch (RecordNotFoundException $e) {
-            $message = json_encode(['message' => 'Store not found']);
-
-            if ($message === false) {
-                $message = 'An error occurred while encoding the error message.';
-            }
-
+            $connection = ConnectionManager::get('default');
+            $connection->begin();
+            $this->Stores->delete($store);
+            $connection->commit();
+            return $this->response
+                ->withStatus(200)
+                ->withStringBody('Registro apagado com sucesso!');
+        } catch (Exception $e) {
             return $this->response
                 ->withStatus(404)
-                ->withStringBody($message);
+                ->withStringBody($e->getMessage());
         }
-
-        return null;
     }
 
     private function validateAddress(array $data): array
@@ -236,5 +232,10 @@ class StoresController extends AppController
         }
 
         return array();
+    }
+
+    private function maskPostalCode($postalCode): string
+    {
+        return substr($postalCode, 0, 5).'-'.substr($postalCode, 5, 3);
     }
 }
