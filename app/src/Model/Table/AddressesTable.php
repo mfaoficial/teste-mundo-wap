@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Model\Table;
 
+use ArrayObject;
+use Cake\Event\EventInterface;
 use Cake\ORM\Query;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table;
@@ -30,7 +32,7 @@ class AddressesTable extends Table
     /**
      * Initialize method
      *
-     * @param array $config The configuration for the Table.
+     * @param  array  $config  The configuration for the Table.
      * @return void
      */
     public function initialize(array $config): void
@@ -45,21 +47,29 @@ class AddressesTable extends Table
     /**
      * Default validation rules.
      *
-     * @param \Cake\Validation\Validator $validator Validator instance.
-     * @return \Cake\Validation\Validator
+     * @param  Validator  $validator  Validator instance.
+     * @return Validator
      */
     public function validationDefault(Validator $validator): Validator
     {
-        //No cadastro, os campos “postal_code” e “street_number” deverão ser obrigatórios e não podem conter valores vazios;
         $validator
             ->maxLength('postal_code', 8, 'O campo postal_code só pode conter até 8 caractéres')
-            ->requirePresence('postal_code', true, 'O campo postal_code é obrigatório')
-            ->notEmptyString('postal_code', 'O campo postal_code é obrigatório');
+            ->requirePresence('postal_code', 'create', 'O campo postal_code é obrigatório')
+            ->notEmptyString('postal_code', 'O campo postal_code é obrigatório', 'create')
+            ->add('postal_code', 'custom', [
+                'rule' => function ($value) {
+                    if (!empty($value)) {
+                        return $this->postalCodeCheck($value);
+                    }
+                    return false;
+                },
+                'message' => 'CEP não encontrado'
+            ]);
 
         $validator
             ->maxLength('street_number', 200, 'O campo street_number só pode conter até 200 caractéres')
-            ->requirePresence('street_number', true, 'O campo street_number é obrigatório')
-            ->notEmptyString('street_number', 'O campo street_number é obrigatório');
+            ->requirePresence('street_number', 'create', 'O campo street_number é obrigatório')
+            ->notEmptyString('street_number', 'O campo street_number é obrigatório', 'create');
 
         return $validator;
     }
@@ -68,13 +78,59 @@ class AddressesTable extends Table
      * Returns a rules checker object that will be used for validating
      * application integrity.
      *
-     * @param \Cake\ORM\RulesChecker $rules The rules object to be modified.
-     * @return \Cake\ORM\RulesChecker
+     * @param  RulesChecker  $rules  The rules object to be modified.
+     * @return RulesChecker
      */
     public function buildRules(RulesChecker $rules): RulesChecker
     {
         $rules->add($rules->isUnique(['foreign_table', 'foreign_id']), ['errorField' => 'foreign_table']);
 
         return $rules;
+    }
+
+    public function postalCodeCheck(string $postal_code): bool
+    {
+        $urlCepAberto = 'https://www.cepaberto.com/api/v3/cep?cep='.$postal_code;
+        $urlViaCep = 'https://viacep.com.br/ws/'.$postal_code.'/json/';
+
+        $address = $this->curlPostalCode($urlCepAberto, 'cep aberto');
+
+        if(empty($address)) {
+            if(empty($address = $this->curlPostalCode($urlViaCep, 'via cep'))) {
+                return false;
+            }
+            return true;
+        }
+        return true;
+    }
+
+    public function curlPostalCode(string $url, string $service) : array
+    {
+        if ($service == 'cep aberto') {
+            // consulta na API CEP Aberto
+            $token = 'Token token=82c7a7b525c01e57986d56fde1945566';
+            $headers = array(
+                'Authorization:'.$token
+            );
+        } else {
+            // consulta na API ViaCEP
+            $headers = array();
+        }
+
+        $ch = curl_init($url);
+        if(!$ch) {
+            return array();
+        } else {
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            $result = curl_exec($ch);
+            curl_close($ch);
+        }
+
+        if ($result === true or $result === false) {
+            return array();
+        }
+
+        return json_decode($result, true) ?: array();
     }
 }

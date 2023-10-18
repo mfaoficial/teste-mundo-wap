@@ -32,13 +32,13 @@ class Address extends Entity
      */
     protected $_accessible = [
         'id' => false,
-        'foreign_table' => false,
-        'foreign_id' => false,
+        'foreign_table' => true,
+        'foreign_id' => true,
         'postal_code' => true,
-        'state' => false,
-        'city' => false,
-        'sublocality' => false,
-        'street' => false,
+        'state' => true,
+        'city' => true,
+        'sublocality' => true,
+        'street' => true,
         'street_number' => true,
         'complement' => true,
     ];

@@ -3,9 +3,15 @@ declare(strict_types=1);
 
 namespace App\Model\Table;
 
+use ArrayObject;
+use Cake\Datasource\ConnectionManager;
+use Cake\Datasource\EntityInterface;
+use Cake\Event\EventInterface;
+use Cake\Http\Response;
 use Cake\ORM\Table;
 use Cake\Validation\Validator;
-use function Sodium\add;
+use Cake\ORM\TableRegistry;
+use Exception;
 
 /**
  * Stores Model
@@ -54,11 +60,69 @@ class StoresTable extends Table
             ->requirePresence('name', true, 'O campo name é obrigatório')
             ->notEmptyString('name', 'O campo name é obrigatório')
             ->add('name', 'unique', [
-            	'rule' => 'validateUnique',
-            	'provider' => 'table',
-            	'message' => 'Nome em uso'
+                'rule' => 'validateUnique',
+                'provider' => 'table',
+                'message' => 'Nome em uso'
             ]);
 
         return $validator;
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function afterSave(EventInterface $event, EntityInterface $entity, ArrayObject $options): bool
+    {
+        $addressesTable = TableRegistry::getTableLocator()->get('Addresses');
+        $address = $addressesTable->newEmptyEntity();
+
+        if (!empty($options['update'])) {
+            $address = $addressesTable->find('all', [
+                'conditions' => [
+                    'foreign_table' => 'stores',
+                    'foreign_id' => $entity->id
+                ]
+            ])->first();
+        }
+
+        $urlCepAberto = 'https://www.cepaberto.com/api/v3/cep?cep='.$options['address']['postal_code'];
+        $urlViaCep = 'https://viacep.com.br/ws/'.$options['address']['postal_code'].'/json/';
+
+        $completeAddress = (new AddressesTable())->curlPostalCode($urlCepAberto, 'cep aberto');
+
+        if (!empty($completeAddress['message'])) {
+            if (empty($completeAddress = (new AddressesTable())->curlPostalCode($urlViaCep, 'via cep'))) {
+                throw new Exception('CEP não encontrado');
+            } else {
+                $options['address']['foreign_table'] = 'stores';
+                $options['address']['foreign_id'] = $entity->id;
+                $options['address']['neighborhood'] = $completeAddress['bairro'];
+                $options['address']['city'] = $completeAddress['localidade'];
+                $options['address']['state'] = $completeAddress['uf'];
+                $options['address']['sublocality'] = $completeAddress['ibge'];
+                $options['address']['street'] = $completeAddress['logradouro'];
+
+                $address = $addressesTable->patchEntity($address, $options['address']);
+                if ($addressesTable->save($address)) {
+                    return true;
+                } else {
+                    throw new Exception('Erro ao salvar.');
+                }
+            }
+        }
+
+        $options['address']['foreign_table'] = 'stores';
+        $options['address']['foreign_id'] = $entity->id;
+        $options['address']['neighborhood'] = $completeAddress['bairro'];
+        $options['address']['city'] = $completeAddress['cidade']['nome'];
+        $options['address']['state'] = $completeAddress['estado']['sigla'];
+        $options['address']['sublocality'] = $completeAddress['cidade']['ibge'];
+        $options['address']['street'] = $completeAddress['logradouro'];
+
+        $address = $addressesTable->patchEntity($address, $options['address']);
+        if ($addressesTable->save($address)) {
+            return true;
+        }
+        throw new Exception('Algo deu errado!');
     }
 }
