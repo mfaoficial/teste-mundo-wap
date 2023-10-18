@@ -173,12 +173,25 @@ class StoresController extends AppController
                 $connection = ConnectionManager::get('default');
                 $connection->begin();
 
-                if (!($this->Stores->save($store, ['address' => $address, 'update' => true]))) {
+                if (!($updateAddress = $this->Stores->save($store, ['address' => $address, 'update' => true]))) {
                     $connection->rollback();
                     $message = json_encode($store->getErrors()) ?: 'Ocorreu um erro inesperado, tente novamente mais tarde.';
 
                     return $this->response
                         ->withStatus($message == 'Ocorreu um erro inesperado, tente novamente mais tarde.' ? 404 : 400)
+                        ->withStringBody($message);
+                }
+
+                // When are updating only address
+                if($this->Stores->updateOnlyAddress($store, new \ArrayObject(['address' => $address]))) {
+                    return $this->response
+                        ->withStatus(200)
+                        ->withStringBody('Registro atualizado com sucesso');
+                } else {
+                    $message = 'Nada a ser atualizado por aqui.';
+
+                    return $this->response
+                        ->withStatus(400)
                         ->withStringBody($message);
                 }
             }
