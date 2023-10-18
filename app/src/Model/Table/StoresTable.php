@@ -92,13 +92,16 @@ class StoresTable extends Table
 
         $addressesTable = TableRegistry::getTableLocator()->get('Addresses');
 
-        /** @var EntityInterface $address */
         $address = $addressesTable->find('all', [
             'conditions' => [
                 'foreign_table' => 'stores',
                 'foreign_id' => $entity->id
             ]
         ])->first();
+
+        if(!$address instanceof EntityInterface) {
+            throw new Exception('O endereço da loja não foi encontrado, contate o administrador do sistema para reportar o problema.');
+        }
 
         // If the postal code is different from the previous one, update the address
         if ($address->get('postal_code') !== $options['address']['postal_code'] or $address->get('street_number') !== $options['address']['street_number']) {
@@ -109,6 +112,10 @@ class StoresTable extends Table
     }
 
     /**
+     * @param  EventInterface  $event
+     * @param  EntityInterface  $entity
+     * @param  ArrayObject  $options
+     * @return bool
      * @throws Exception
      */
     public function afterSave(EventInterface $event, EntityInterface $entity, ArrayObject $options): bool
@@ -116,7 +123,7 @@ class StoresTable extends Table
         $addressesTable = TableRegistry::getTableLocator()->get('Addresses');
         $address = $addressesTable->newEmptyEntity();
 
-        /** @var Connection $connection */
+        /* @var Connection $connection */
         $connection = ConnectionManager::get('default');
 
         if ($options['update']) {
@@ -125,7 +132,11 @@ class StoresTable extends Table
                     'foreign_table' => 'stores',
                     'foreign_id' => $entity->id
                 ]
-            ])->firstOrFail();
+            ])->first();
+        }
+
+        if(!$address instanceof EntityInterface) {
+            throw new Exception('O endereço da loja não foi encontrado, contate o administrador do sistema para reportar o problema.');
         }
 
         return $this->checkPostalCodeTwice($options, $entity, $addressesTable, $address, $connection);
@@ -144,8 +155,8 @@ class StoresTable extends Table
             ]
         ])->first();
 
-        if (!($address instanceof \Cake\Datasource\EntityInterface)) {
-            throw new Exception('Ocorreu um erro inesperado, tente novamente mais tarde.');
+        if(!$address instanceof EntityInterface) {
+            throw new Exception('O endereço da loja já havia sido apagado, contate o administrador do sistema para reportar o problema.');
         }
 
         try {
@@ -161,6 +172,7 @@ class StoresTable extends Table
      * @param  EntityInterface  $address
      * @param  array  $newAddress
      * @param  Connection  $connection
+     * @param  string|null  $type
      * @return true
      * @throws Exception
      */
@@ -209,8 +221,8 @@ class StoresTable extends Table
         Connection $connection
     ): bool {
         if (!empty((new AddressesTable())->curlPostalCode($urlViaCep,
-            'via cep')['erro'] or empty((new AddressesTable())->curlPostalCode($urlViaCep,
-            'via cep')))) {
+                'via cep')['erro'] or empty((new AddressesTable())->curlPostalCode($urlViaCep,
+                'via cep')))) {
             throw new Exception('CEP não encontrado');
         } else {
             $options['address']['foreign_table'] = 'stores';
