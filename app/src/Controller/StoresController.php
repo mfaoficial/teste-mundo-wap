@@ -108,7 +108,7 @@ class StoresController extends AppController
         $address = [
             'postal_code' => $this->request->getData('postal_code'),
             'street_number' => $this->request->getData('street_number'),
-            'complement' => $this->request->getData('complement'),
+            'complement' => $this->request->getData('complement') ?? '',
         ];
 
         /** @var Connection $connection */
@@ -166,7 +166,7 @@ class StoresController extends AppController
                 $address = [
                     'postal_code' => $this->request->getData('postal_code') ?? $store->get('postal_code'),
                     'street_number' => $this->request->getData('street_number') ?? $store->get('street_number'),
-                    'complement' => $this->request->getData('complement') ?? $store->get('complement'),
+                    'complement' => $this->request->getData('complement') ?? $store->get('complement') ?? '',
                 ];
 
                 /** @var Connection $connection */
