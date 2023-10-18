@@ -53,7 +53,19 @@ class StoresController extends AppController
     {
         $this->request->allowMethod(['get']);
 
-        $stores = json_encode($this->Stores->find()->all()) ?: 'Ocorreu um erro inesperado, tente novamente mais tarde.';
+        $stores = $this->Stores->find('all', [
+            'contain' => [
+                'Addresses'
+            ]
+        ])->all();
+
+        foreach ($stores as $store) {
+            if(!empty($store->get('address'))){
+                $store->get('address')->postal_code_masked = $this->maskPostalCode($store->get('address')->postal_code);
+            }
+        }
+
+        $stores = json_encode($stores) ?: 'Ocorreu um erro inesperado, tente novamente mais tarde.';
 
         return $this->response
             ->withStatus($stores == 'Ocorreu um erro inesperado, tente novamente mais tarde.' ? 404 : 200)
