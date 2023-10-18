@@ -152,6 +152,10 @@ class StoresTable extends Table
             ]
         ])->first();
 
+        if (!($address instanceof \Cake\Datasource\EntityInterface)) {
+            throw new Exception('Ocorreu um erro inesperado, tente novamente mais tarde.');
+        }
+
         try {
             $addressesTable->delete($address);
             return true;

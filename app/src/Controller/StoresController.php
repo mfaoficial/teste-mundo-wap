@@ -3,18 +3,17 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Model\Entity\Address;
 use App\Model\Table\AddressesTable;
 use App\Model\Table\StoresTable;
-use Cake\Database\Exception\NestedTransactionRollbackException;
+use Cake\Database\Connection;
 use Cake\Datasource\ConnectionManager;
 use Cake\Event\EventInterface;
 use Cake\ORM\TableRegistry;
 use Cake\Http\Response;
 use Cake\View\JsonView;
-use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Validation\Validator;
 use Exception;
-use PHPStan\Type\MixedType;
 
 class StoresController extends AppController
 {
@@ -73,7 +72,14 @@ class StoresController extends AppController
                 'Addresses'
             ]
         ])->first();
-        $store->address->postal_code_masked = $this->maskPostalCode($store->address->postal_code);
+
+        if (!($store instanceof \Cake\Datasource\EntityInterface)) {
+            return $this->response
+                ->withStatus(404)
+                ->withStringBody('Registro não encontrado');
+        }
+
+        $store->get('address')->postal_code_masked = $this->maskPostalCode($store->get('address')->postal_code);
         $store = json_encode($store) ?: 'Registro não encontrado';
 
         return $this->response
@@ -81,6 +87,9 @@ class StoresController extends AppController
             ->withStringBody($store);
     }
 
+    /**
+     * @property Address $address
+     */
     public function add(): Response
     {
         $this->request->allowMethod(['post']);
@@ -102,6 +111,7 @@ class StoresController extends AppController
             'complement' => $this->request->getData('complement'),
         ];
 
+        /** @var Connection $connection */
         $connection = ConnectionManager::get('default');
         $connection->begin();
 
@@ -154,11 +164,12 @@ class StoresController extends AppController
                 }
 
                 $address = [
-                    'postal_code' => $this->request->getData('postal_code') ?? $store->postal_code,
-                    'street_number' => $this->request->getData('street_number') ?? $store->street_number,
-                    'complement' => $this->request->getData('complement') ?? $store->complement,
+                    'postal_code' => $this->request->getData('postal_code') ?? $store->get('postal_code'),
+                    'street_number' => $this->request->getData('street_number') ?? $store->get('street_number'),
+                    'complement' => $this->request->getData('complement') ?? $store->get('complement'),
                 ];
 
+                /** @var Connection $connection */
                 $connection = ConnectionManager::get('default');
                 $connection->begin();
 
@@ -192,6 +203,7 @@ class StoresController extends AppController
         try {
             $store = $this->Stores->get($id);
 
+            /** @var Connection $connection */
             $connection = ConnectionManager::get('default');
             $connection->begin();
             $this->Stores->delete($store);
@@ -234,7 +246,7 @@ class StoresController extends AppController
         return array();
     }
 
-    private function maskPostalCode($postalCode): string
+    private function maskPostalCode(string $postalCode): string
     {
         return substr($postalCode, 0, 5).'-'.substr($postalCode, 5, 3);
     }
