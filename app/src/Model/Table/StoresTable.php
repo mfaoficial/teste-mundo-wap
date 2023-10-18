@@ -13,6 +13,7 @@ use Cake\ORM\Table;
 use Cake\Validation\Validator;
 use Cake\ORM\TableRegistry;
 use Exception;
+use function PHPUnit\Framework\throwException;
 
 /**
  * Stores Model
@@ -118,14 +119,13 @@ class StoresTable extends Table
         /** @var Connection $connection */
         $connection = ConnectionManager::get('default');
 
-        if (!empty($options['update'])) {
+        if ($options['update']) {
             $address = $addressesTable->find('all', [
                 'conditions' => [
                     'foreign_table' => 'stores',
                     'foreign_id' => $entity->id
                 ]
             ])->firstOrFail();
-            $address = $addressesTable->newEmptyEntity();
         }
 
         return $this->checkPostalCodeTwice($options, $entity, $addressesTable, $address, $connection);
@@ -182,7 +182,6 @@ class StoresTable extends Table
 
         $address = $addressesTable->patchEntity($address, $newAddress);
         if ($addressesTable->save($address)) {
-            $connection->commit();
             return true;
         } else {
             throw new Exception('Ocorreu um erro inesperado, tente novamente mais tarde.');
@@ -209,9 +208,9 @@ class StoresTable extends Table
         EntityInterface $address,
         Connection $connection
     ): bool {
-        if ((new AddressesTable())->curlPostalCode($urlViaCep,
-                'via cep')['erro'] === true or empty((new AddressesTable())->curlPostalCode($urlViaCep,
-                'via cep'))) {
+        if (!empty((new AddressesTable())->curlPostalCode($urlViaCep,
+            'via cep')['erro'] or empty((new AddressesTable())->curlPostalCode($urlViaCep,
+            'via cep')))) {
             throw new Exception('CEP não encontrado');
         } else {
             $options['address']['foreign_table'] = 'stores';
@@ -222,7 +221,8 @@ class StoresTable extends Table
             $options['address']['sublocality'] = $completeAddress['ibge'];
             $options['address']['street'] = $completeAddress['logradouro'];
 
-            return $this->saveNewAddress($addressesTable, $address, $options['address'], $connection, $options['update'] ? 'update' : null);
+            return $this->saveNewAddress($addressesTable, $address, $options['address'], $connection,
+                $options['update'] ? 'update' : null);
         }
     }
 
@@ -272,7 +272,8 @@ class StoresTable extends Table
             !empty($options['update']) ? $update = true : $update = false;
             $options = $this->fillViaCepData($options, $entity, $completeAddress);
 
-            return $this->saveNewAddress($addressesTable, $address, $options['address'], $connection, $update ? 'update' : null);
+            return $this->saveNewAddress($addressesTable, $address, $options['address'], $connection,
+                $update ? 'update' : null);
         }
     }
 }

@@ -150,11 +150,16 @@ class StoresController extends AppController
     {
         $this->request->allowMethod(['put']);
 
+        /** @var Connection $connection */
+        $connection = ConnectionManager::get('default');
+        $connection->begin();
         try {
             $store = $this->Stores->get($id);
             $store = $this->Stores->patchEntity($store, $this->request->getData());
 
-            if (!empty($this->request->getData('postal_code')) or !empty($this->request->getData('street_number'))) {
+            if (!empty($this->request->getData('postal_code'))
+                or !empty($this->request->getData('street_number'))
+                or !empty($this->request->getData('complement'))) {
                 $validatedAddress = $this->validateAddress($this->request->getData());
 
                 if (!empty($validatedAddress)) {
@@ -164,16 +169,12 @@ class StoresController extends AppController
                 }
 
                 $address = [
-                    'postal_code' => $this->request->getData('postal_code') ?? $store->get('postal_code'),
-                    'street_number' => $this->request->getData('street_number') ?? $store->get('street_number'),
-                    'complement' => $this->request->getData('complement') ?? $store->get('complement') ?? '',
+                    'postal_code' => $this->request->getData('postal_code'),
+                    'street_number' => $this->request->getData('street_number'),
+                    'complement' => $this->request->getData('complement') ?? '',
                 ];
 
-                /** @var Connection $connection */
-                $connection = ConnectionManager::get('default');
-                $connection->begin();
-
-                if (!($updateAddress = $this->Stores->save($store, ['address' => $address, 'update' => true]))) {
+                if (!$this->Stores->save($store, ['address' => $address, 'update' => true])) {
                     $connection->rollback();
                     $message = json_encode($store->getErrors()) ?: 'Ocorreu um erro inesperado, tente novamente mais tarde.';
 
@@ -183,19 +184,15 @@ class StoresController extends AppController
                 }
 
                 // When are updating only address
-                if($this->Stores->updateOnlyAddress($store, new \ArrayObject(['address' => $address]))) {
+                if ($this->Stores->updateOnlyAddress($store, new \ArrayObject(['address' => $address]))) {
+                    $connection->commit();
                     return $this->response
                         ->withStatus(200)
                         ->withStringBody('Registro atualizado com sucesso');
-                } else {
-                    $message = 'Nada a ser atualizado por aqui.';
-
-                    return $this->response
-                        ->withStatus(400)
-                        ->withStringBody($message);
                 }
             }
 
+            $connection->commit();
             $message = 'Registro atualizado com sucesso';
 
             return $this->response
@@ -203,6 +200,7 @@ class StoresController extends AppController
                 ->withStringBody($message);
 
         } catch (Exception $e) {
+            $connection->rollback();
             return $this->response
                 ->withStatus(404)
                 ->withStringBody($e->getMessage());
