@@ -27,6 +27,7 @@
     ```bash
     docker-compose down
     ```
+8. Put the token of CEP ABERTO on .env.app with the var `TOKEN_CEP_ABERTO`.
 
 ## Usage
 The application should be accessible at `http://localhost:13001`.
