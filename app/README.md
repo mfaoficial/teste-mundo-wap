@@ -12,6 +12,7 @@ The framework source code can be found here: [cakephp/cakephp](https://github.co
 
 1. Download [Composer](https://getcomposer.org/doc/00-intro.md) or update `composer self-update`.
 2. Run `php composer.phar create-project --prefer-dist cakephp/app [app_name]`.
+3. Put the token of CEP ABERTO on .env.app with the var `TOKEN_CEP_ABERTO`.
 
 If Composer is installed globally, run
 
@@ -42,7 +43,7 @@ automated upgrades, so you have to do any updates manually.
 
 ## Configuration
 
-Read and edit the environment specific `config/app_local.php` and setup the 
+Read and edit the environment specific `config/app_local.php` and setup the
 `'Datasources'` and any other configuration relevant for your application.
 Other environment agnostic settings can be changed in `config/app.php`.
 
