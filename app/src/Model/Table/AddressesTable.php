@@ -108,7 +108,7 @@ class AddressesTable extends Table
     {
         if ($service == 'cep aberto') {
             // consulta na API CEP Aberto
-            $token = 'Token token=82c7a7b525c01e57986d56fde1945566';
+            $token = 'Token token='.env('TOKEN_CEP_ABERTO');
             $headers = array(
                 'Authorization:'.$token
             );
