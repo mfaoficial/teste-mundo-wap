@@ -126,7 +126,7 @@ class StoresTable extends Table
         /** @var Connection $connection */
         $connection = ConnectionManager::get('default');
 
-        if ($options['update']) {
+        if (!empty($options['update'])) {
             $address = $addressesTable->find('all', [
                 'conditions' => [
                     'foreign_table' => 'stores',
